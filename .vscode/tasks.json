@@ -18,6 +18,15 @@
             },
         },
         {
+            "label": "flutter clean",
+            "type": "shell",
+            "command": "flutter",
+            "args": [
+                "clean"
+            ],
+            "problemMatcher": [],
+        },
+        {
             "label": "adb connect",
             "type": "shell",
             "command": "adb",

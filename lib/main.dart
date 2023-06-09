@@ -1,119 +1,213 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
 
-void main() => runApp(const MyApp());
+import 'package:flutter/material.dart';
+//import 'package:sensor_data_logging/chart.dart';
+import 'chart.dart';
+import 'package:sensors_plus/sensors_plus.dart';
+import 'accelerometer_data.dart';
+import 'gyroscope_data.dart';
+
+
+void main() {
+  runApp(const MyApp());
+}
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({Key? key}) : super(key: key);
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      debugShowCheckedModeBanner: false,
+      title: 'Sensors Demo',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // Try running your application with "flutter run". You'll see the
-        // application has a blue toolbar. Then, without quitting the app, try
-        // changing the primarySwatch below to Colors.green and then invoke
-        // "hot reload" (press "r" in the console where you ran "flutter run",
-        // or press Run > Flutter Hot Reload in a Flutter IDE). Notice that the
-        // counter didn't reset back to zero; the application is not restarted.
-        primarySwatch: Colors.blue,
+        primarySwatch: Colors.teal,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MyHomePage(title: 'Flutter Sensor Data Home Page'),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+  const MyHomePage({Key? key, this.title}) : super(key: key);
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+  final String? title;
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
+  List<double>? _accelerometerValues;
+  List<double>? _userAccelerometerValues;
+  List<double>? _gyroscopeValues;
+  List<double>? _magnetometerValues;
+  final _streamSubscriptions = <StreamSubscription<dynamic>>[];
+
+  List<AccelerometerData> _accelerometerData = [];
+  List<GyroscopeData> _gyroscopeData = [];
+
+  int backAndForth = 0;
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
+    final accelerometer =
+    _accelerometerValues?.map((double v) => v.toStringAsFixed(1)).toList();
+    final gyroscope =
+    _gyroscopeValues?.map((double v) => v.toStringAsFixed(1)).toList();
+    final userAccelerometer = _userAccelerometerValues
+        ?.map((double v) => v.toStringAsFixed(1))
+        .toList();
+    final magnetometer =
+    _magnetometerValues?.map((double v) => v.toStringAsFixed(1)).toList();
+
     return Scaffold(
       appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+        title: const Text('Live Sensor Data'),
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            // Column is also a layout widget. It takes a list of children and
-            // arranges them vertically. By default, it sizes itself to fit its
-            // children horizontally, and tries to be as tall as its parent.
-            //
-            // Invoke "debug painting" (press "p" in the console, choose the
-            // "Toggle Debug Paint" action from the Flutter Inspector in Android
-            // Studio, or the "Toggle Debug Paint" command in Visual Studio Code)
-            // to see the wireframe for each widget.
-            //
-            // Column has various properties to control how it sizes itself and
-            // how it positions its children. Here we use mainAxisAlignment to
-            // center the children vertically; the main axis here is the vertical
-            // axis because Columns are vertical (the cross axis would be
-            // horizontal).
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              const TextField(),
-              const SizedBox(height: 32),
-              ElevatedButton(onPressed: () {}, child: const Text('保存')),
-              const SizedBox(height: 64),
-              const Text(
-                'You have pushed the button this many times:',
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: <Widget>[
+          Center(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                border: Border.all(width: 1.0, color: Colors.black38),
               ),
-              Text(
-                '$_counter',
-                style: Theme.of(context).textTheme.headline4,
-              ),
-            ],
+            ),
           ),
-        ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: <Widget>[
+                Text('Accelerometer: $accelerometer'),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: <Widget>[
+                Text('UserAccelerometer: $userAccelerometer'),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: <Widget>[
+                Text('Gyroscope: $gyroscope'),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: <Widget>[
+                Text('Magnetometer: $magnetometer'),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: <Widget>[
+                Text('Date: ${DateTime.now()}'),
+              ],
+            ),
+          ),
+          // a simple button to test the accelerometer
+          ElevatedButton(
+            child: const Text("Start"),
+            onPressed: () {
+              if(backAndForth % 2 == 1){
+                _accelerometerData.clear();
+                _gyroscopeData.clear();
+              }
+              // start a stream that saves acceleroemeterData
+              _streamSubscriptions.add(
+                  accelerometerEvents.listen((AccelerometerEvent event) {
+                    _accelerometerData.add(AccelerometerData(DateTime.now(), <double>[event.x, event.y, event.z]));
+                  })
+              );
+              // start a stream that saves gyroscopeData
+              _streamSubscriptions.add(
+                  gyroscopeEvents.listen((GyroscopeEvent event) {
+                    _gyroscopeData.add(GyroscopeData(DateTime.now(), <double>[event.x, event.y, event.z]));
+                  })
+              );
+              backAndForth++;
+            },
+          ),
+          ElevatedButton(
+            child: const Text("Stop"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
+            onPressed: () {
+              print("length: ${_accelerometerData.length}");
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => ChartScreen(accelerometerData: _accelerometerData, gyroscopeData: _gyroscopeData)),
+              );
+            },
+          ),
+        ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+    );
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    for (final subscription in _streamSubscriptions) {
+      subscription.cancel();
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _streamSubscriptions.add(
+      accelerometerEvents.listen(
+            (AccelerometerEvent event) {
+          setState(() {
+            _accelerometerValues = <double>[event.x, event.y, event.z];
+          });
+        },
+      ),
+    );
+    _streamSubscriptions.add(
+      gyroscopeEvents.listen(
+            (GyroscopeEvent event) {
+          setState(() {
+            _gyroscopeValues = <double>[event.x, event.y, event.z];
+          });
+        },
+      ),
+    );
+    _streamSubscriptions.add(
+      userAccelerometerEvents.listen(
+            (UserAccelerometerEvent event) {
+          setState(() {
+            _userAccelerometerValues = <double>[event.x, event.y, event.z];
+          });
+        },
+      ),
+    );
+    _streamSubscriptions.add(
+      magnetometerEvents.listen(
+            (MagnetometerEvent event) {
+          setState(() {
+            _magnetometerValues = <double>[event.x, event.y, event.z];
+          });
+        },
+      ),
     );
   }
 }
